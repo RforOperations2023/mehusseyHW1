@@ -45,6 +45,10 @@ server <- function(input, output) {
       geom_histogram(binwidth = 1) +
       ggtitle(paste("Histogram of Land Use for", input$product))
   })
+  
+  output$table <- DT::renderDataTable({
+    DT::datatable(food_filtered())
+  })
 }
 
 shinyApp(ui, server)
