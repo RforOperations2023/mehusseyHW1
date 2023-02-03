@@ -4,52 +4,40 @@ library(ggplot2)
 library(DT)
 
 ui <- fluidPage(
-  titlePanel("Food Product Emissions"),
+  titlePanel("Environmental Impact of Food Production"),
   
   sidebarLayout(
     sidebarPanel(
-      radioButtons("product", "Select a product:", 
-                   c("Beef (beef herd)", "Beef (dairy herd)", "Dark Chocolate", "Lamb & Mutton", "Cheese"), 
-                   selected = "Beef (beef herd)"),
-      actionButton("refresh", "Refresh")
-    ),
-    
+      selectInput("column", "Select a measure to display:", 
+                  choices = c("Total Emissions" = "total_emissions", 
+                              "Greenhouse Gas Emissions" = "greenhouse_gas", 
+                              "Land Use Emissions" = "land_use"),
+                  selected = "Total Emissions")),
     mainPanel(
-      plotOutput("histogram1"),
-      plotOutput("histogram2"),
-      plotOutput("histogram3")
+      plotOutput("bar_chart"),
+      DT::dataTableOutput("data_table")
     )
   )
 )
-
 server <- function(input, output) {
   
   food_filtered <- reactive({
-    food %>%
-      filter(product == input$product)
+    req(input$column)
+    filtered_data <- food %>%
+      select(product, input$column) 
   })
   
-  output$histogram1 <- renderPlot({
-    ggplot(food_filtered(), aes(x = Total_emissions)) +
-      geom_histogram(binwidth = 1) +
-      ggtitle(paste("Histogram of Total Emissions for", input$product))
-  })
-  
-  output$histogram2 <- renderPlot({
-    ggplot(food_filtered(), aes(x = Greenhouse_gas)) +
-      geom_histogram(binwidth = 1) +
-      ggtitle(paste("Histogram of Greenhouse Gas Emissions for", input$product))
-  })
-  
-  output$histogram3 <- renderPlot({
-    ggplot(food_filtered(), aes(x = Land_use)) +
-      geom_histogram(binwidth = 1) +
-      ggtitle(paste("Histogram of Land Use for", input$product))
-  })
+# Render the bar chart
+output$bar_chart <- renderPlot({
+  ggplot(food, aes_string(x = "product", y = input$column, color = "purple")) +
+    geom_bar(stat = "identity") +
+    xlab("Product") +
+    ylab("Total") +
+    ggtitle("Product Totals")
+})
   
   output$table <- DT::renderDataTable({
     DT::datatable(food_filtered())
   })
 }
-
 shinyApp(ui, server)
