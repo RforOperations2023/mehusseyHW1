@@ -7,16 +7,11 @@ foodtop10 <- read_csv("foodtop10.csv", show_col_types = FALSE)
 
 #USER INTERFACE SIDE
 ui <- fluidPage(
-  
   titlePanel("Environmental Impact of Food Production"),
-  
   sidebarLayout(
-    
     sidebarPanel(
-      
-      selectInput(inputId = "y",
-                  label = "Select a y-axis emissions measure for the histogram and bar chart:", 
-                  choices = c( "Land Use (Kg CO2)" = "Land_use",
+      selectInput(selectInput("y", "Select a variable for the x-axis:", 
+                              c("Land Use (Kg CO2)" = "Land_use",
                                "Animal Feed (Kg CO2)" = "Animal_feed",
                                "Farm (Kg CO2)" = "Farm",
                                "Processing (Kg CO2)" = "Processing",
@@ -39,10 +34,8 @@ ui <- fluidPage(
                                "Scarcity Weighted Water Use (per 100g protein)" = "Scarcity_water_protein",
                                "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal",
                                selected = "Land Use (Kg CO2)")),
-      
-      selectInput(inputId = "x", 
-                  label = "Select an x-axis for the histogram:",
-                  choices = c( "Land Use (Kg CO2)" = "Land_use",
+      selectInput("x", "Select a variable for the x-axis:", 
+                  c("Land Use (Kg CO2)" = "Land_use",
                                "Animal Feed (Kg CO2)" = "Animal_feed",
                                "Farm (Kg CO2)" = "Farm",
                                "Processing (Kg CO2)" = "Processing",
@@ -64,30 +57,33 @@ ui <- fluidPage(
                                "Scarcity Weighted Water Use (per kilogram)" = "Scarcity_water_kilogram",
                                "Scarcity Weighted Water Use (per 100g protein)" = "Scarcity_water_protein",
                                "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal",
-                               selected = "Greenhouse Gas Emissions per 100 kcal"),
-    
-    #add a download button
-    downloadButton("downloadData", "Download data")
-  ),
-
-  #OUTPUT
+                               selected = "Greenhouse Gas Emissions per 100 kcal")),
+      #show data table
+      checkboxInput(inputId = "show_data",
+                    label = "Show data table",
+                    value = TRUE),
+      #add a download button
+      downloadButton("downloadData", "Download data"),
+      
+  #output
   mainPanel(
     plotOutput(outputId = "scatterplot"),
     plotOutput(outputId = "barchart"),
     plotOutput(outputId = "piecchart"),
     DT::dataTableOutput(outputId = "datatable")
+    )
   )
-)))
+)
 #SERVER side
 server <- function(input, output) {
-  #food_filtered <- reactive({
-   # req(input$y)
-   # arrange(desc(!!sym(input$y))) #arrange by selected y (also what they will see on bar chart)
-  #})
+  food_filtered <- reactive({
+    req(input$y, input$x)
+    arrange(desc(!!sym(input$y))) #arrange by selected y (also what they will see on bar chart)
+    })
   
   #Render the scatter plot 
   output$scatterplot <- renderPlot({
-    ggplot(data = foodtop10, aes_string(x = input$x, y = input$y)) +
+    ggplot(data = foodtop10, aes_string(x = "input$x", y = "input$y")) +
       geom_point() +
       labs(x = toTitleCase(str_replace_all(input$x, "\\.", " ")),
          y = toTitleCase(str_replace_all(input$y, "\\.", " "))
@@ -95,7 +91,7 @@ server <- function(input, output) {
          })
   # Render the bar chart
   output$barchart <- renderPlot({
-    ggplot(data = foodtop10, aes(x = product, y = input$y, fill = product)) +
+    ggplot(data = foodtop10, aes_string(x = "product", y = "input$y", fill = "product")) +
       geom_bar(stat = "identity") +
       xlab("Food Product") +
       ylab("Emissions") +
@@ -119,9 +115,13 @@ server <- function(input, output) {
       guides(fill = guide_legend(title = "Food Product"))
   })
   
-  output$datatable <- DT::renderDataTable({
-    foodtop10
-  })
+  output$data_table <- DT::renderDataTable(
+    if(input$show_data){
+      DT::datatable(data = food_filtered(), 
+                    options = list(pageLength = 10), 
+                    rownames = FALSE)
+    }
+  )
   output$downloadData <- downloadHandler(
     filename = function() {
       paste("food-data-", Sys.Date(), ".csv", sep = "")
