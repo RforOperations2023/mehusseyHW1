@@ -81,7 +81,9 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
                     DT::dataTableOutput(outputId = "datatable")
                   )),
                 tabPanel("Pie Chart of Total Emissions", 
-                         plotOutput(outputId = "piechart")))
+                         fluidRow(plotOutput(outputId = "piechart")),
+                fluidRow(
+                DT::dataTableOutput(outputId = "piedata"))))
     )
   )
 )
@@ -98,8 +100,8 @@ server <- function(input, output) {
   output$scatterplot <- renderPlot({
     ggplot(data = foodtop10, aes_string(x = input$x, y = input$y, color = "product")) +
       geom_point(size = 3) +
-      labs(x = tools::toTitleCase(str_replace_all(input$x, "\\.", " ")),
-           y = tools::toTitleCase(str_replace_all(input$y, "\\.", " "))
+      labs(x = tools::toTitleCase(gsub("_", " ", input$x)),
+           y = tools::toTitleCase(gsub("_", " ", input$y))
            ) +
       theme_classic() +
       theme(legend.position = "bottom")
@@ -109,7 +111,7 @@ server <- function(input, output) {
     ggplot(data = foodtop10, aes_string(x = "product", y = input$y, fill = "product")) +
       geom_bar(stat = "identity") +
       xlab("Food Product") +
-      ylab(tools::toTitleCase(str_replace_all(input$y, "\\.", " "))) +
+      ylab(ylab(tools::toTitleCase(gsub("_", " ", input$y)))) +
       ggtitle("Contribution of Food Products to Selected Emission") +
       scale_fill_brewer(palette = "Paired") +
       theme_classic() + 
@@ -127,10 +129,17 @@ server <- function(input, output) {
       ylab("Emissions") +
       theme(legend.position = "right",
             plot.title = element_text(hjust = 0.5)) +
-      guides(fill = guide_legend(title = "Food Product")) + 
+      guides(fill = guide_legend(title = "Food Product")) +
       theme_classic() +
       theme(axis.ticks = element_blank()) +
       theme(axis.text = element_blank())
+  })
+  
+  #Render a second data table for the pie chart tab
+  output$piedata <- DT::renderDataTable({
+    DT::datatable(data = foodprod_sum,
+    options = list(pageLength = 10), 
+    rownames = FALSE)
   })
   
   output$datatable <- DT::renderDataTable(
