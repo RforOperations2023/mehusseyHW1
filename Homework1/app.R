@@ -3,20 +3,24 @@ library(shiny)
 library(dplyr)
 library(ggplot2)
 library(DT)
+library(stringr)
 foodtop10 <- read_csv("foodtop10.csv", show_col_types = FALSE)
+colnames(foodtop10)[colnames(foodtop10) == "Packging"] <- "Packaging" #Changing a mispelling
+foodprod_sum <- aggregate(foodtop10$Total_emissions, by = list(foodtop10$product), sum)
+names(foodprod_sum) <- c("product", "Total_emissions")
 
 #USER INTERFACE SIDE
 ui <- fluidPage(
   titlePanel("Environmental Impact of Food Production"),
   sidebarLayout(
     sidebarPanel(
-      selectInput("y", "Select a variable for the x-axis:", 
+      selectInput("y", "Select a variable for the y-axis:", 
                               c("Land Use (Kg CO2)" = "Land_use",
                                "Animal Feed (Kg CO2)" = "Animal_feed",
                                "Farm (Kg CO2)" = "Farm",
                                "Processing (Kg CO2)" = "Processing",
                                "Transport (Kg CO2)" = "Transport",
-                               "Packaging (Kg CO2)" = "Packging",
+                               "Packaging (Kg CO2)" = "Packaging",
                                "Retail (Kg CO2)" = "Retail",
                                "Total Emissions (Kg CO2)" = "Total_emissions",
                                "Eutrophying (per 100 kcal)" = "Eutrophying_emissions_kcal",
@@ -40,7 +44,7 @@ ui <- fluidPage(
                                "Farm (Kg CO2)" = "Farm",
                                "Processing (Kg CO2)" = "Processing",
                                "Transport (Kg CO2)" = "Transport",
-                               "Packaging (Kg CO2)" = "Packging",
+                               "Packaging (Kg CO2)" = "Packaging",
                                "Retail (Kg CO2)" = "Retail",
                                "Total Emissions (Kg CO2)" = "Total_emissions",
                                "Eutrophying (per 100 kcal)" = "Eutrophying_emissions_kcal",
@@ -69,7 +73,7 @@ ui <- fluidPage(
   mainPanel(
     plotOutput(outputId = "scatterplot"),
     plotOutput(outputId = "barchart"),
-    plotOutput(outputId = "piecchart"),
+    plotOutput(outputId = "piechart"),
     DT::dataTableOutput(outputId = "datatable")
     )
   )
@@ -86,25 +90,23 @@ server <- function(input, output) {
   #Render the scatter plot 
   output$scatterplot <- renderPlot({
     ggplot(data = foodtop10, aes_string(x = input$x, y = input$y, color = "product")) +
-      geom_point(size = 3)
-      #labs(x = str_replace_all(input$x, "\\.", " "),
-        # y = str_replace_all(input$y, "\\.", " ")
-    #  )
+      geom_point(size = 3) +
+      labs(x = tools::toTitleCase(str_replace_all(input$x, "\\.", " ")),
+           y = tools::toTitleCase(str_replace_all(input$y, "\\.", " "))
+           )
          })
   # Render the bar chart
   output$barchart <- renderPlot({
     ggplot(data = foodtop10, aes_string(x = "product", y = input$y, fill = "product")) +
       geom_bar(stat = "identity") +
       xlab("Food Product") +
-      ylab("Emissions") +
+      ylab(tools::toTitleCase(str_replace_all(input$y, "\\.", " "))) +
       ggtitle("Contribution of Food Products to Selected Emission") +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
       scale_fill_brewer(palette = "Paired")
   })
   # Render the pie chart
   output$piechart <- renderPlot({
-    foodprod_sum <- aggregate(foodtop10$Total_emissions, by = list(foodtop10$product), sum)
-    names(foodprod_sum) <- c("product", "Total_emissions")
     ggplot(data = foodprod_sum, aes(x = "", y = Total_emissions, fill = product)) +
       geom_bar(width = 1, stat = "identity") +
       coord_polar("y", start = 0) +
