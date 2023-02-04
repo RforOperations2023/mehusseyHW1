@@ -70,7 +70,7 @@ ui <- fluidPage(theme = shinytheme("sandstone"),
       #add a download button
       downloadButton("downloadData", "Download data")),
       
-  #output
+  #Output - creating two tabs
   mainPanel(
     tabsetPanel(type = "tabs",
                 tabPanel("Interactive Charts", 
@@ -142,6 +142,7 @@ server <- function(input, output) {
     rownames = FALSE)
   })
   
+  #Render data table on the first tab (if checked)
   output$datatable <- DT::renderDataTable(
     if(input$show_data){
       DT::datatable(data = food_filtered(), 
@@ -149,6 +150,8 @@ server <- function(input, output) {
                     rownames = FALSE)
     }
   )
+  
+  #Download data function
   output$downloadData <- downloadHandler(
     filename = function() {
       paste("food-data-", Sys.Date(), ".csv", sep = "")
@@ -157,4 +160,5 @@ server <- function(input, output) {
     }
   )
 }
+#run the final app
 shinyApp(ui, server)
