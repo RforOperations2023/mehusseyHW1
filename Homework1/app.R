@@ -1,16 +1,17 @@
 library(readr)
 library(shiny)
+library(shinythemes)
 library(dplyr)
 library(ggplot2)
 library(DT)
 library(stringr)
 foodtop10 <- read_csv("foodtop10.csv", show_col_types = FALSE)
-colnames(foodtop10)[colnames(foodtop10) == "Packging"] <- "Packaging" #Changing a mispelling
-foodprod_sum <- aggregate(foodtop10$Total_emissions, by = list(foodtop10$product), sum)
+colnames(foodtop10)[colnames(foodtop10) == "Packging"] <- "Packaging" #Changing a misspelling
+foodprod_sum <- aggregate(foodtop10$Total_emissions, by = list(foodtop10$product), sum) #for pie chart
 names(foodprod_sum) <- c("product", "Total_emissions")
 
 #USER INTERFACE SIDE
-ui <- fluidPage(
+ui <- fluidPage(theme = shinytheme("sandstone"),
   titlePanel("Environmental Impact of Food Production"),
   sidebarLayout(
     sidebarPanel(width = 2,
@@ -99,7 +100,9 @@ server <- function(input, output) {
       geom_point(size = 3) +
       labs(x = tools::toTitleCase(str_replace_all(input$x, "\\.", " ")),
            y = tools::toTitleCase(str_replace_all(input$y, "\\.", " "))
-           )
+           ) +
+      theme_classic() +
+      theme(legend.position = "bottom")
          })
   # Render the bar chart
   output$barchart <- renderPlot({
@@ -108,9 +111,10 @@ server <- function(input, output) {
       xlab("Food Product") +
       ylab(tools::toTitleCase(str_replace_all(input$y, "\\.", " "))) +
       ggtitle("Contribution of Food Products to Selected Emission") +
-      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      scale_fill_brewer(palette = "Paired") +
+      theme_classic() + 
       theme(legend.position = "none") +
-      scale_fill_brewer(palette = "Paired")
+      theme(axis.text.x = element_text(angle = 90, hjust = 1))
   })
   # Render the pie chart
   output$piechart <- renderPlot({
@@ -123,7 +127,10 @@ server <- function(input, output) {
       ylab("Emissions") +
       theme(legend.position = "right",
             plot.title = element_text(hjust = 0.5)) +
-      guides(fill = guide_legend(title = "Food Product"))
+      guides(fill = guide_legend(title = "Food Product")) + 
+      theme_classic() +
+      theme(axis.ticks = element_blank()) +
+      theme(axis.text = element_blank())
   })
   
   output$datatable <- DT::renderDataTable(
