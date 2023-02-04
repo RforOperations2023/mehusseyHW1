@@ -7,11 +7,13 @@ library(RColorBrewer)
 
 foodprod <- read_csv("foodprod.csv")
 View(foodprod)
+str(foodprod)
 
 colnames(foodprod)[colnames(foodprod) == "Food product"] <- "product"
 #making it one word so it is easier for coding
 
 food <- foodprod[complete.cases(foodprod), ] #filtering out rows that have NAs 
+str(food)
 #clearing NAs so that the user can only look at food products that have all data
 #Shows only 24 instead of 43 foods
 write.csv(food, "food.csv") #writing my csv here so I can just call the clean one in the app
@@ -66,3 +68,5 @@ ggplot(data = foodtop10, aes(x = product, y = Total_emissions, fill = product)) 
   ggtitle("Contribution of Food Products to Emissions") +
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   scale_fill_brewer(palette = "Paired")
+
+

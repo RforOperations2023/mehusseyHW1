@@ -3,80 +3,125 @@ library(shiny)
 library(dplyr)
 library(ggplot2)
 library(DT)
-food <- read_csv("food.csv")
+foodtop10 <- read_csv("foodtop10.csv", show_col_types = FALSE)
 
 #USER INTERFACE SIDE
 ui <- fluidPage(
+  
   titlePanel("Environmental Impact of Food Production"),
+  
   sidebarLayout(
-    sidebarPanel(
-      selectInput(inputId = "y",
-                  label = "Select a measure to display:", 
-                  choices = c("Total Emissions" = "total_emissions", 
-                              "Greenhouse Gas Emissions" = "greenhouse_gas", 
-                              "Land Use Emissions" = "land_use"),
-                  selected = "Total Emissions")),
     
-    #show data table
-    checkboxInput(inputId = "show_data",
-                  label = "Show data table",
-                  value = TRUE),
+    sidebarPanel(
+      
+      selectInput(inputId = "y",
+                  label = "Select a y-axis emissions measure for the histogram and bar chart:", 
+                  choices = c( "Land Use (Kg CO2)" = "Land_use",
+                               "Animal Feed (Kg CO2)" = "Animal_feed",
+                               "Farm (Kg CO2)" = "Farm",
+                               "Processing (Kg CO2)" = "Processing",
+                               "Transport (Kg CO2)" = "Transport",
+                               "Packaging (Kg CO2)" = "Packging",
+                               "Retail (Kg CO2)" = "Retail",
+                               "Total Emissions (Kg CO2)" = "Total_emissions",
+                               "Eutrophying (per 100 kcal)" = "Eutrophying_emissions_kcal",
+                               "Eutrophying (per kilogram)" = "Eutrophying_emissions_kilogram",
+                               "Eutrophying (per 100g protein)" = "Eutrophying_emissions_protein",
+                               "Freshwater Withdrawals (per 100 kcal)" = "Freshwater_withdrawals_kcal",
+                               "Freshwater Withdrawals (per 100g protein)" = "Freshwater_withdrawals_protein",
+                               "Freshwater Withdrawals (per kilogram)" = "Freshwater_withdrawals_kilogram",
+                               "Greenhouse Gas (per 100 kcal)" = "Greenhouse_gas_kcal",
+                               "Greenhouse Gas (per 100g protein)" = "Greenhouse_gas_protein",
+                               "Land Use (per 100 kcal)" = "Land_use_kcal",
+                               "Land Use (per kilogram)" = "Land_use_kilogram",
+                               "Land Use (per 100g protein)" = "Land_use_protein",
+                               "Scarcity Weighted Water Use (per kilogram)" = "Scarcity_water_kilogram",
+                               "Scarcity Weighted Water Use (per 100g protein)" = "Scarcity_water_protein",
+                               "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal",
+                               selected = "Land Use (Kg CO2)")),
+      
+      selectInput(inputId = "x", 
+                  label = "Select an x-axis for the histogram:",
+                  choices = c( "Land Use (Kg CO2)" = "Land_use",
+                               "Animal Feed (Kg CO2)" = "Animal_feed",
+                               "Farm (Kg CO2)" = "Farm",
+                               "Processing (Kg CO2)" = "Processing",
+                               "Transport (Kg CO2)" = "Transport",
+                               "Packaging (Kg CO2)" = "Packging",
+                               "Retail (Kg CO2)" = "Retail",
+                               "Total Emissions (Kg CO2)" = "Total_emissions",
+                               "Eutrophying (per 100 kcal)" = "Eutrophying_emissions_kcal",
+                               "Eutrophying (per kilogram)" = "Eutrophying_emissions_kilogram",
+                               "Eutrophying (per 100g protein)" = "Eutrophying_emissions_protein",
+                               "Freshwater Withdrawals (per 100 kcal)" = "Freshwater_withdrawals_kcal",
+                               "Freshwater Withdrawals (per 100g protein)" = "Freshwater_withdrawals_protein",
+                               "Freshwater Withdrawals (per kilogram)" = "Freshwater_withdrawals_kilogram",
+                               "Greenhouse Gas (per 100 kcal)" = "Greenhouse_gas_kcal",
+                               "Greenhouse Gas (per 100g protein)" = "Greenhouse_gas_protein",
+                               "Land Use (per 100 kcal)" = "Land_use_kcal",
+                               "Land Use (per kilogram)" = "Land_use_kilogram",
+                               "Land Use (per 100g protein)" = "Land_use_protein",
+                               "Scarcity Weighted Water Use (per kilogram)" = "Scarcity_water_kilogram",
+                               "Scarcity Weighted Water Use (per 100g protein)" = "Scarcity_water_protein",
+                               "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal",
+                               selected = "Greenhouse Gas Emissions per 100 kcal"),
     
     #add a download button
     downloadButton("downloadData", "Download data")
   ),
 
-  #output
+  #OUTPUT
   mainPanel(
-    plotOutput(outputId = "bar_chart"),
-    plotOutput(outputId = "scatter1"),
-    plotOutput(outputId = "scatter2"),
-    DT::dataTableOutput(outputId = "data_table")
+    plotOutput(outputId = "scatterplot"),
+    plotOutput(outputId = "barchart"),
+    plotOutput(outputId = "piecchart"),
+    DT::dataTableOutput(outputId = "datatable")
   )
-)
+)))
 #SERVER side
 server <- function(input, output) {
+  #food_filtered <- reactive({
+   # req(input$y)
+   # arrange(desc(!!sym(input$y))) #arrange by selected y (also what they will see on bar chart)
+  #})
   
-  food_filtered <- reactive({
-    req(input$column)
-    food %>% 
-      arrange(desc(!!sym(input$column))) 
-  })
-  
+  #Render the scatter plot 
+  output$scatterplot <- renderPlot({
+    ggplot(data = foodtop10, aes_string(x = input$x, y = input$y)) +
+      geom_point() +
+      labs(x = toTitleCase(str_replace_all(input$x, "\\.", " ")),
+         y = toTitleCase(str_replace_all(input$y, "\\.", " "))
+      )
+         })
   # Render the bar chart
-  output$bar_chart <- renderPlot({
-    ggplot(food, aes_string(x = "product", y = input$y, color = "product")) +
+  output$barchart <- renderPlot({
+    ggplot(data = foodtop10, aes(x = product, y = input$y, fill = product)) +
       geom_bar(stat = "identity") +
-      xlab("Food type") +
-      ylab("Total") +
-      ggtitle(input$column, "for different types of food production")
+      xlab("Food Product") +
+      ylab("Emissions") +
+      ggtitle("Contribution of Food Products to Selected Emission") +
+      theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      scale_fill_brewer(palette = "Paired")
+  })
+  # Render the pie chart
+  output$piechart <- renderPlot({
+    foodprod_sum <- aggregate(foodtop$Total_emissions, by = list(foodtop$product), sum)
+    names(foodprod_sum) <- c("product", "Total_emissions")
+    ggplot(data = foodprod_sum, aes(x = "", y = Total_emissions, fill = product)) +
+      geom_bar(width = 1, stat = "identity") +
+      coord_polar("y", start = 0) +
+      scale_fill_brewer(palette = "Paired") +
+      ggtitle("Total Emissions by Food Product") +
+      xlab("") +
+      ylab("Emissions") +
+      theme(legend.position = "right",
+            plot.title = element_text(hjust = 0.5)) +
+      guides(fill = guide_legend(title = "Food Product"))
   })
   
-  #Render the first scatter plot 
-  output$scatter1 <- renderPlot({
-    ggplot(food, aes(x = Total_emissions, y = land_use, color = product)) +
-      geom_point() +
-      xlab("Total Emissions") +
-      ylab("Land Use Emissions (per 100kcal)") +
-      ggtitle("Total Emissions vs Land Use Emissions by Food Production")
+  output$datatable <- DT::renderDataTable({
+    foodtop10
   })
-  
-  # Render the second scatter plot
-  output$scatter2 <- renderPlot({
-    ggplot(food, aes(x = Total_emissions, y = greenhouse_gas, color = product)) +
-      geom_point() +
-      xlab("Total Emissions") +
-      ylab("Greenhouse Gas Emissions (per 100kcal)") +
-      ggtitle("Total Emissions vs Greenhouse Gas Emissions by Food Production")
-  })
-  
-  output$data_table <- DT::renderDataTable(
-    if(input$show_data){
-      DT::datatable(data = food_filtered(), 
-                    options = list(pageLength = 10), 
-                    rownames = FALSE)
-    }
-  )
   output$downloadData <- downloadHandler(
     filename = function() {
       paste("food-data-", Sys.Date(), ".csv", sep = "")
