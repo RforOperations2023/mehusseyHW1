@@ -13,7 +13,7 @@ names(foodprod_sum) <- c("product", "Total_emissions")
 ui <- fluidPage(
   titlePanel("Environmental Impact of Food Production"),
   sidebarLayout(
-    sidebarPanel(
+    sidebarPanel(width = 2,
       selectInput("y", "Select a variable for the y-axis:", 
                               c("Land Use (Kg CO2)" = "Land_use",
                                "Animal Feed (Kg CO2)" = "Animal_feed",
@@ -71,10 +71,16 @@ ui <- fluidPage(
       
   #output
   mainPanel(
-    plotOutput(outputId = "scatterplot"),
-    plotOutput(outputId = "barchart"),
-    plotOutput(outputId = "piechart"),
-    DT::dataTableOutput(outputId = "datatable")
+    tabsetPanel(type = "tabs",
+                tabPanel("Interactive Charts", 
+                         fluidRow(
+                  column(6, plotOutput(outputId = "scatterplot")),
+                  column(6, plotOutput(outputId = "barchart"))),
+                  fluidRow(
+                    DT::dataTableOutput(outputId = "datatable")
+                  )),
+                tabPanel("Pie Chart of Total Emissions", 
+                         plotOutput(outputId = "piechart")))
     )
   )
 )
@@ -103,6 +109,7 @@ server <- function(input, output) {
       ylab(tools::toTitleCase(str_replace_all(input$y, "\\.", " "))) +
       ggtitle("Contribution of Food Products to Selected Emission") +
       theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+      theme(legend.position = "none") +
       scale_fill_brewer(palette = "Paired")
   })
   # Render the pie chart
