@@ -10,7 +10,7 @@ ui <- fluidPage(
   titlePanel("Environmental Impact of Food Production"),
   sidebarLayout(
     sidebarPanel(
-      selectInput(selectInput("y", "Select a variable for the x-axis:", 
+      selectInput("y", "Select a variable for the x-axis:", 
                               c("Land Use (Kg CO2)" = "Land_use",
                                "Animal Feed (Kg CO2)" = "Animal_feed",
                                "Farm (Kg CO2)" = "Farm",
@@ -32,8 +32,8 @@ ui <- fluidPage(
                                "Land Use (per 100g protein)" = "Land_use_protein",
                                "Scarcity Weighted Water Use (per kilogram)" = "Scarcity_water_kilogram",
                                "Scarcity Weighted Water Use (per 100g protein)" = "Scarcity_water_protein",
-                               "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal",
-                               selected = "Land Use (Kg CO2)")),
+                               "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal"),
+                               selected = "Land Use (Kg CO2)"),
       selectInput("x", "Select a variable for the x-axis:", 
                   c("Land Use (Kg CO2)" = "Land_use",
                                "Animal Feed (Kg CO2)" = "Animal_feed",
@@ -56,14 +56,14 @@ ui <- fluidPage(
                                "Land Use (per 100g protein)" = "Land_use_protein",
                                "Scarcity Weighted Water Use (per kilogram)" = "Scarcity_water_kilogram",
                                "Scarcity Weighted Water Use (per 100g protein)" = "Scarcity_water_protein",
-                               "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal",
-                               selected = "Greenhouse Gas Emissions per 100 kcal")),
+                               "Scarcity Weighted Water Use (per 100 kcal)" = "Scarcity_water_kcal"),
+                               selected = "Greenhouse Gas Emissions per 100 kcal"),
       #show data table
       checkboxInput(inputId = "show_data",
                     label = "Show data table",
                     value = TRUE),
       #add a download button
-      downloadButton("downloadData", "Download data"),
+      downloadButton("downloadData", "Download data")),
       
   #output
   mainPanel(
@@ -74,24 +74,26 @@ ui <- fluidPage(
     )
   )
 )
+
 #SERVER side
 server <- function(input, output) {
   food_filtered <- reactive({
     req(input$y, input$x)
-    arrange(desc(!!sym(input$y))) #arrange by selected y (also what they will see on bar chart)
+    foodtop10 %>% 
+      arrange(desc(!!sym(input$y))) #arrange by selected y (also what they will see on bar chart)
     })
   
   #Render the scatter plot 
   output$scatterplot <- renderPlot({
-    ggplot(data = foodtop10, aes_string(x = "input$x", y = "input$y")) +
-      geom_point() +
-      labs(x = toTitleCase(str_replace_all(input$x, "\\.", " ")),
-         y = toTitleCase(str_replace_all(input$y, "\\.", " "))
-      )
+    ggplot(data = foodtop10, aes_string(x = input$x, y = input$y, color = "product")) +
+      geom_point(size = 3)
+      #labs(x = str_replace_all(input$x, "\\.", " "),
+        # y = str_replace_all(input$y, "\\.", " ")
+    #  )
          })
   # Render the bar chart
   output$barchart <- renderPlot({
-    ggplot(data = foodtop10, aes_string(x = "product", y = "input$y", fill = "product")) +
+    ggplot(data = foodtop10, aes_string(x = "product", y = input$y, fill = "product")) +
       geom_bar(stat = "identity") +
       xlab("Food Product") +
       ylab("Emissions") +
@@ -101,7 +103,7 @@ server <- function(input, output) {
   })
   # Render the pie chart
   output$piechart <- renderPlot({
-    foodprod_sum <- aggregate(foodtop$Total_emissions, by = list(foodtop$product), sum)
+    foodprod_sum <- aggregate(foodtop10$Total_emissions, by = list(foodtop10$product), sum)
     names(foodprod_sum) <- c("product", "Total_emissions")
     ggplot(data = foodprod_sum, aes(x = "", y = Total_emissions, fill = product)) +
       geom_bar(width = 1, stat = "identity") +
@@ -115,7 +117,7 @@ server <- function(input, output) {
       guides(fill = guide_legend(title = "Food Product"))
   })
   
-  output$data_table <- DT::renderDataTable(
+  output$datatable <- DT::renderDataTable(
     if(input$show_data){
       DT::datatable(data = food_filtered(), 
                     options = list(pageLength = 10), 
